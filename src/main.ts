@@ -1,99 +1,70 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+/**
+ * Vault Recall - Main Plugin Entry Point
+ */
 
-// Remember to rename these classes and interfaces!
+import { Plugin, Notice } from 'obsidian';
+import { FileService } from './services/file-service';
+import { ValidationService } from './services/validation-service';
+import type { Config } from './types';
+import { DEFAULT_CONFIG } from './constants';
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class VaultRecallPlugin extends Plugin {
+  fileService: FileService;
+  validationService: ValidationService;
+  config: Config;
 
-	async onload() {
-		await this.loadSettings();
+  async onload() {
+    console.debug('Loading Vault Recall plugin');
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+    // Initialize services
+    this.fileService = new FileService(this.app);
+    this.validationService = new ValidationService();
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+    // Initialize plugin data
+    await this.initializePlugin();
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+    // Load configuration
+    this.config = await this.fileService.readConfig();
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
+    // TODO: Phase 2 - Register commands
+    // TODO: Phase 3 - Register sidebar view
+    // TODO: Phase 3 - Register code block processor
+    // TODO: Phase 3 - Register context menu items
+    // TODO: Phase 2 - Add settings tab
+  }
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+  /**
+   * Initialize the plugin - create .quiz folder and default files
+   */
+  async initializePlugin(): Promise<void> {
+    try {
+      // Ensure .quiz folder exists
+      await this.fileService.ensureQuizFolder();
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
+      // Copy CLAUDE.md template if it doesn't exist
+      await this.fileService.initializeCLAUDEmd();
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+      // Initialize config if it doesn't exist
+      const config = await this.fileService.readConfig();
+      if (!config.version) {
+        await this.fileService.writeConfig(DEFAULT_CONFIG);
+      }
 
-	}
+      console.debug('Vault Recall: Initialization complete');
+    } catch (error) {
+      console.error('Vault Recall: Initialization failed', error);
+      new Notice('Failed to initialize quiz folder');
+    }
+  }
 
-	onunload() {
-	}
+  /**
+   * Reload configuration from file
+   */
+  async reloadConfig(): Promise<void> {
+    this.config = await this.fileService.readConfig();
+  }
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+  onunload() {
+    console.debug('Unloading Vault Recall plugin');
+  }
 }

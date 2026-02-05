@@ -1,36 +1,35 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+/**
+ * Vault Recall - Settings Tab (stub for Phase 2)
+ */
 
-export interface MyPluginSettings {
-	mySetting: string;
-}
+import { App, PluginSettingTab, Setting } from 'obsidian';
+import type VaultRecallPlugin from './main';
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+export class VaultRecallSettingTab extends PluginSettingTab {
+  plugin: VaultRecallPlugin;
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+  constructor(app: App, plugin: VaultRecallPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+  display(): void {
+    const { containerEl } = this;
+    containerEl.empty();
 
-	display(): void {
-		const {containerEl} = this;
+    // TODO: Phase 2 - Implement settings UI
+    // - Questions per note (number slider, 1-20)
+    // - Question types (multi-select checkboxes)
+    // - Difficulty (dropdown)
+    // - Include related concepts (toggle)
+    // - Custom prompt (text area)
 
-		containerEl.empty();
+    new Setting(containerEl)
+      .setName('Quiz generation')
+      .setHeading();
 
-		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+    new Setting(containerEl)
+      .setName('Coming soon')
+      .setDesc('Full configuration will be available in a future update.');
+  }
 }

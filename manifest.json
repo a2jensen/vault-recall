@@ -1,0 +1,10 @@
+{
+	"id": "vault-recall",
+	"name": "Vault Recall",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Turn your notes into interactive quizzes for active recall practice. Track streaks and learn from your own notes.",
+	"author": "Angelo",
+	"authorUrl": "https://github.com/a2jensen",
+	"isDesktopOnly": false
+}

@@ -1,5 +1,8 @@
 /**
  * FileService - Handles all file I/O operations for the .quiz/ folder
+ *
+ * Uses vault.adapter for direct disk access since Obsidian's file index
+ * does not reliably track dotfolders like .quiz/.
  */
 
 import { App, TFile, TFolder, Vault } from 'obsidian';
@@ -38,9 +41,9 @@ export class FileService {
    * Called once during plugin initialization.
    */
   async ensureQuizFolder(): Promise<void> {
-    const folder = this.vault.getAbstractFileByPath(QUIZ_FOLDER);
-    if (!folder) {
-      await this.vault.createFolder(QUIZ_FOLDER);
+    const exists = await this.vault.adapter.exists(QUIZ_FOLDER);
+    if (!exists) {
+      await this.vault.adapter.mkdir(QUIZ_FOLDER);
     }
   }
 
@@ -50,9 +53,9 @@ export class FileService {
    */
   async initializeCLAUDEmd(): Promise<void> {
     const path = getQuizPath(CLAUDE_FILE);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (!file) {
-      await this.vault.create(path, CLAUDE_MD_TEMPLATE);
+    const exists = await this.vault.adapter.exists(path);
+    if (!exists) {
+      await this.vault.adapter.write(path, CLAUDE_MD_TEMPLATE);
     }
   }
 
@@ -63,11 +66,11 @@ export class FileService {
   async readConfig(): Promise<Config> {
     const path = getQuizPath(CONFIG_FILE);
     try {
-      const file = this.vault.getAbstractFileByPath(path);
-      if (!file || !(file instanceof TFile)) {
+      const exists = await this.vault.adapter.exists(path);
+      if (!exists) {
         return { ...DEFAULT_CONFIG };
       }
-      const content = await this.vault.read(file);
+      const content = await this.vault.adapter.read(path);
       const parsed = JSON.parse(content) as Config;
       return parsed;
     } catch {
@@ -82,12 +85,7 @@ export class FileService {
   async writeConfig(config: Config): Promise<void> {
     const path = getQuizPath(CONFIG_FILE);
     const content = JSON.stringify(config, null, 2);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      await this.vault.modify(file, content);
-    } else {
-      await this.vault.create(path, content);
-    }
+    await this.vault.adapter.write(path, content);
   }
 
   /**
@@ -97,11 +95,11 @@ export class FileService {
   async readQuestions(): Promise<QuestionsFile> {
     const path = getQuizPath(QUESTIONS_FILE);
     try {
-      const file = this.vault.getAbstractFileByPath(path);
-      if (!file || !(file instanceof TFile)) {
+      const exists = await this.vault.adapter.exists(path);
+      if (!exists) {
         return { ...EMPTY_QUESTIONS_FILE };
       }
-      const content = await this.vault.read(file);
+      const content = await this.vault.adapter.read(path);
       const parsed = JSON.parse(content) as QuestionsFile;
       return parsed;
     } catch {
@@ -116,12 +114,7 @@ export class FileService {
   async writeQuestions(questions: QuestionsFile): Promise<void> {
     const path = getQuizPath(QUESTIONS_FILE);
     const content = JSON.stringify(questions, null, 2);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      await this.vault.modify(file, content);
-    } else {
-      await this.vault.create(path, content);
-    }
+    await this.vault.adapter.write(path, content);
   }
 
   /**
@@ -131,11 +124,11 @@ export class FileService {
   async readPending(): Promise<PendingFile> {
     const path = getQuizPath(PENDING_FILE);
     try {
-      const file = this.vault.getAbstractFileByPath(path);
-      if (!file || !(file instanceof TFile)) {
+      const exists = await this.vault.adapter.exists(path);
+      if (!exists) {
         return { ...EMPTY_PENDING_FILE };
       }
-      const content = await this.vault.read(file);
+      const content = await this.vault.adapter.read(path);
       const parsed = JSON.parse(content) as PendingFile;
       return parsed;
     } catch {
@@ -150,12 +143,7 @@ export class FileService {
   async writePending(pending: PendingFile): Promise<void> {
     const path = getQuizPath(PENDING_FILE);
     const content = JSON.stringify(pending, null, 2);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      await this.vault.modify(file, content);
-    } else {
-      await this.vault.create(path, content);
-    }
+    await this.vault.adapter.write(path, content);
   }
 
   /**
@@ -165,11 +153,11 @@ export class FileService {
   async readHistory(): Promise<HistoryFile> {
     const path = getQuizPath(HISTORY_FILE);
     try {
-      const file = this.vault.getAbstractFileByPath(path);
-      if (!file || !(file instanceof TFile)) {
+      const exists = await this.vault.adapter.exists(path);
+      if (!exists) {
         return { ...EMPTY_HISTORY_FILE };
       }
-      const content = await this.vault.read(file);
+      const content = await this.vault.adapter.read(path);
       const parsed = JSON.parse(content) as HistoryFile;
       return parsed;
     } catch {
@@ -184,12 +172,7 @@ export class FileService {
   async writeHistory(history: HistoryFile): Promise<void> {
     const path = getQuizPath(HISTORY_FILE);
     const content = JSON.stringify(history, null, 2);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      await this.vault.modify(file, content);
-    } else {
-      await this.vault.create(path, content);
-    }
+    await this.vault.adapter.write(path, content);
   }
 
   /**
@@ -199,11 +182,11 @@ export class FileService {
   async readImport(): Promise<ImportFile | null> {
     const path = getQuizPath(IMPORT_FILE);
     try {
-      const file = this.vault.getAbstractFileByPath(path);
-      if (!file || !(file instanceof TFile)) {
+      const exists = await this.vault.adapter.exists(path);
+      if (!exists) {
         return null;
       }
-      const content = await this.vault.read(file);
+      const content = await this.vault.adapter.read(path);
       const parsed = JSON.parse(content) as ImportFile;
       return parsed;
     } catch {
@@ -217,9 +200,9 @@ export class FileService {
    */
   async clearImport(): Promise<void> {
     const path = getQuizPath(IMPORT_FILE);
-    const file = this.vault.getAbstractFileByPath(path);
-    if (file instanceof TFile) {
-      await this.app.fileManager.trashFile(file);
+    const exists = await this.vault.adapter.exists(path);
+    if (exists) {
+      await this.vault.adapter.remove(path);
     }
   }
 

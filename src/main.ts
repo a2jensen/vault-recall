@@ -116,6 +116,22 @@ export default class VaultRecallPlugin extends Plugin {
       },
     });
 
+    // Copy generation prompt to clipboard
+    this.addCommand({
+      id: 'copy-generation-prompt',
+      name: 'Copy generation prompt to clipboard',
+      checkCallback: (checking: boolean) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file && file.extension === 'md') {
+          if (!checking) {
+            void this.copyGenerationPrompt(file.path);
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
     // Import questions from import.json
     this.addCommand({
       id: 'import-questions',
@@ -222,6 +238,15 @@ export default class VaultRecallPlugin extends Plugin {
                 void this.addNoteToQueue(file.path);
               });
           });
+
+          menu.addItem((item) => {
+            item
+              .setTitle('Copy quiz prompt')
+              .setIcon('clipboard-copy')
+              .onClick(() => {
+                void this.copyGenerationPrompt(file.path);
+              });
+          });
         }
 
         if (file instanceof TFolder) {
@@ -305,6 +330,38 @@ export default class VaultRecallPlugin extends Plugin {
       console.error('Failed to add folder to queue', error);
       new Notice('Failed to add folder to queue');
     }
+  }
+
+  /**
+   * Builds a generation prompt string for a given note path.
+   */
+  buildGenerationPrompt(notePath: string): string {
+    const { preferences } = this.config;
+    const lines = [
+      'Read .quiz/CLAUDE.md for instructions, then generate questions for the following note:',
+      '',
+      `Note: ${notePath}`,
+      '',
+      'Preferences:',
+      `- Questions: ${preferences.questionsPerNote}`,
+      `- Types: ${preferences.questionTypes.join(', ')}`,
+      `- Difficulty: ${preferences.difficulty}`,
+    ];
+
+    if (preferences.customPrompt) {
+      lines.push('', `Additional instructions: ${preferences.customPrompt}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Copies a generation prompt for the given note to the clipboard.
+   */
+  async copyGenerationPrompt(notePath: string): Promise<void> {
+    const prompt = this.buildGenerationPrompt(notePath);
+    await navigator.clipboard.writeText(prompt);
+    new Notice('Generation prompt copied to clipboard');
   }
 
   /**

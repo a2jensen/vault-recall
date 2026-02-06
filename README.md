@@ -41,20 +41,27 @@ When you add a folder, the plugin finds all markdown files in that folder (recur
 
 ### 2. Generate questions with Claude Code
 
-Open your terminal in your vault directory and run Claude Code:
+The plugin builds a ready-made prompt for you. With a note open:
+
+1. Open the command palette and run **"Vault Recall: Copy generation prompt to clipboard"**
+   — or right-click the note → **"Copy quiz prompt"**
+2. Open your terminal in your vault directory and start Claude Code (`claude`)
+3. Paste the prompt
+
+The copied prompt includes the note's file path and your configured preferences:
 
 ```
-claude
+Read .quiz/CLAUDE.md for instructions, then generate questions for the following note:
+
+Note: School/Algorithms/Graph Traversal.md
+
+Preferences:
+- Questions: 5
+- Types: multiple_choice, fill_blank, true_false
+- Difficulty: medium
 ```
 
-Then ask:
-
-```
-Read .quiz/CLAUDE.md for instructions, then generate
-questions for the notes in .quiz/pending.json
-```
-
-Claude Code will read your notes and write questions to `.quiz/questions.json`.
+Claude Code will read the note and write questions to `.quiz/questions.json`.
 
 ### 3. Take a quiz
 
@@ -156,20 +163,22 @@ These settings are saved to `.quiz/config.json` and read by Claude Code when gen
 
 The plugin includes `.quiz/CLAUDE.md` — a documentation file that tells Claude Code exactly how to work with your quiz files.
 
-### Generate questions
+### Quick way: copy prompt from the plugin
+
+Use the command palette (`Vault Recall: Copy generation prompt to clipboard`) or right-click a note → **"Copy quiz prompt"**. The plugin builds a prompt with the note path and your preferences, ready to paste into a Claude Code session.
+
+### Manual prompts
+
+You can also type prompts directly:
 
 ```
 Read .quiz/CLAUDE.md, then generate questions for pending notes
 ```
 
-### Generate questions for a specific note
-
 ```
 Read .quiz/CLAUDE.md, then generate 10 hard questions
 for "School/Algorithms/Graph Traversal.md"
 ```
-
-### Customize question style
 
 ```
 Read .quiz/CLAUDE.md, then generate questions for pending notes.

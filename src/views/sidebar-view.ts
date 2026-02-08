@@ -120,9 +120,19 @@ export class SidebarView extends ItemView {
       return;
     }
 
-    // Show count
-    const countEl = this.pendingListEl.createDiv({ cls: 'vr-pending-count' });
+    // Show count and generate button
+    const pendingToolbar = this.pendingListEl.createDiv({ cls: 'vr-pending-toolbar' });
+    const countEl = pendingToolbar.createDiv({ cls: 'vr-pending-count' });
     countEl.textContent = `${pending.notes.length} note${pending.notes.length !== 1 ? 's' : ''} waiting`;
+
+    const generateBtn = pendingToolbar.createEl('button', {
+      cls: 'vr-btn vr-btn-secondary vr-btn-sm',
+      text: 'Copy prompt',
+      attr: { 'aria-label': 'Copy generation prompt for all queued notes' },
+    });
+    generateBtn.addEventListener('click', () => {
+      void this.plugin.copyQueueGenerationPrompt();
+    });
 
     // List pending notes
     for (const note of pending.notes) {

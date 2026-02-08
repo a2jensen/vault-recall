@@ -2,7 +2,7 @@
  * Vault Recall - Main Plugin Entry Point
  */
 
-import { Plugin, Notice, TFile, TFolder, Menu } from 'obsidian';
+import { FileSystemAdapter, Plugin, Notice, TFile, TFolder, Menu } from 'obsidian';
 import { FileService } from './services/file-service';
 import { ValidationService } from './services/validation-service';
 import { StreakService } from './services/streak-service';
@@ -333,11 +333,36 @@ export default class VaultRecallPlugin extends Plugin {
   }
 
   /**
+   * Returns the absolute vault path, shell-escaped for spaces.
+   * e.g. /home/user/Documents/'Angelos Vault'
+   */
+  getShellSafeVaultPath(): string {
+    const adapter = this.app.vault.adapter;
+    if (adapter instanceof FileSystemAdapter) {
+      const raw = adapter.getBasePath();
+      return raw.split('/').map((seg) => (seg.includes(' ') ? `'${seg}'` : seg)).join('/');
+    }
+    return this.app.vault.getName();
+  }
+
+  /**
+   * Builds the directory-check preamble included at the top of every prompt.
+   */
+  private buildDirectoryPreamble(): string {
+    const shellPath = this.getShellSafeVaultPath();
+    return [
+      `IMPORTANT: Before doing anything, check that your current working directory contains a .quiz/ folder. If it does not, ask the user: "Want me to cd into your vault?" If yes, run: cd ${shellPath} — if no, just provide them the command and stop.`,
+    ].join('\n');
+  }
+
+  /**
    * Builds a generation prompt string for a given note path.
    */
   buildGenerationPrompt(notePath: string): string {
     const { preferences } = this.config;
     const lines = [
+      this.buildDirectoryPreamble(),
+      '',
       'Read .quiz/CLAUDE.md for instructions, then generate questions for the following note:',
       '',
       `Note: ${notePath}`,
@@ -362,6 +387,46 @@ export default class VaultRecallPlugin extends Plugin {
     const prompt = this.buildGenerationPrompt(notePath);
     await navigator.clipboard.writeText(prompt);
     new Notice('Generation prompt copied to clipboard');
+  }
+
+  /**
+   * Builds a generation prompt for all notes currently in the queue.
+   */
+  buildQueueGenerationPrompt(notePaths: string[]): string {
+    const { preferences } = this.config;
+    const lines = [
+      this.buildDirectoryPreamble(),
+      '',
+      'Read .quiz/CLAUDE.md for instructions, then generate questions for the following notes:',
+      '',
+      ...notePaths.map((p) => `- ${p}`),
+      '',
+      'Preferences:',
+      `- Questions per note: ${preferences.questionsPerNote}`,
+      `- Types: ${preferences.questionTypes.join(', ')}`,
+      `- Difficulty: ${preferences.difficulty}`,
+    ];
+
+    if (preferences.customPrompt) {
+      lines.push('', `Additional instructions: ${preferences.customPrompt}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Reads the pending queue and copies a generation prompt for all queued notes.
+   */
+  async copyQueueGenerationPrompt(): Promise<void> {
+    const pending = await this.fileService.readPending();
+    if (pending.notes.length === 0) {
+      new Notice('No notes in the queue');
+      return;
+    }
+    const paths = pending.notes.map((n) => n.path);
+    const prompt = this.buildQueueGenerationPrompt(paths);
+    await navigator.clipboard.writeText(prompt);
+    new Notice(`Prompt copied for ${paths.length} note${paths.length !== 1 ? 's' : ''}`);
   }
 
   /**

@@ -90,69 +90,21 @@ Staging file for question imports. **You can write to this file.**
 }
 \`\`\`
 
-When you write questions here instead of directly to \`questions.json\`, the user can click **Import Questions** in the plugin to validate and import them. This is safer because:
-- The plugin validates the schema before importing
-- User sees clear error messages if format is wrong
-- User controls when questions are added
+**This is the only file you write questions to.** Always use \`import.json\` — never write directly to \`questions.json\`.
 
-Use \`import.json\` when:
-- Formatting questions from external sources (LeetCode, textbooks, etc.)
-- User wants validation before committing questions
-- You're uncertain about the exact schema
+The plugin watches \`import.json\` for changes. As soon as you write this file, the plugin automatically:
+1. Validates each question against the schema
+2. Appends valid questions to \`questions.json\`
+3. Deletes \`import.json\`
+4. Shows a notification with the result
 
-Use \`questions.json\` directly when:
-- Generating questions from the user's own notes
-- User explicitly asks you to write directly
+This means you never need to read \`questions.json\` — the plugin owns that file. You only write the new batch to \`import.json\`.
 
 ### questions.json
 
-The question cache. **This is the file you write to.**
+The question cache. **Read-only for Claude — do not write to this file.**
 
-\`\`\`json
-{
-  "version": 1,
-  "questions": [
-    {
-      "id": "q_abc123",
-      "sourceNote": "School/Datacenters/Hardware Components.md",
-      "createdAt": "2025-01-15T11:00:00Z",
-      "type": "multiple_choice",
-      "difficulty": "medium",
-      "question": "What is the primary advantage of SSDs over HDDs in datacenter environments?",
-      "correctAnswer": "Faster read/write speeds and lower latency",
-      "incorrectAnswers": [
-        "Lower cost per gigabyte",
-        "Higher storage capacity",
-        "Better performance in high-temperature environments"
-      ],
-      "explanation": "SSDs use flash memory with no moving parts, resulting in significantly faster access times and lower latency compared to the mechanical spinning platters in HDDs.",
-      "relatedConcepts": ["storage architecture", "IOPS", "latency"]
-    },
-    {
-      "id": "q_def456",
-      "sourceNote": "School/Algorithms/Graph Traversal.md",
-      "createdAt": "2025-01-15T11:00:00Z",
-      "type": "fill_blank",
-      "difficulty": "medium",
-      "question": "BFS uses a ___ data structure while DFS uses a ___.",
-      "blanks": ["queue", "stack"],
-      "explanation": "BFS explores level by level using FIFO ordering (queue), while DFS explores as deep as possible first using LIFO ordering (stack).",
-      "relatedConcepts": ["queue", "stack", "tree traversal"]
-    },
-    {
-      "id": "q_jkl012",
-      "sourceNote": "School/Datacenters/Hardware Components.md",
-      "createdAt": "2025-01-15T11:00:00Z",
-      "type": "true_false",
-      "difficulty": "easy",
-      "question": "In datacenter memory hierarchy, L1 cache is slower but larger than L2 cache.",
-      "correctAnswer": false,
-      "explanation": "L1 cache is the fastest and smallest cache, closest to the CPU. L2 is larger but slower, and L3 is larger still but slowest among caches.",
-      "relatedConcepts": ["cache hierarchy", "memory latency"]
-    }
-  ]
-}
-\`\`\`
+The plugin manages \`questions.json\` entirely. It can grow to thousands of questions — reading it wastes tokens. The plugin handles deduplication and merging.
 
 ### history.json
 
@@ -233,9 +185,10 @@ When asked to generate questions:
 1. **Read config.json** to understand user preferences
 2. **Read pending.json** to see which notes need questions
 3. **Read the actual note files** listed in pending.json
-4. **Read history.json** (optional) to see what questions exist and user performance
-5. **Generate questions** following the schemas above
-6. **Write to questions.json** — append new questions to the existing array
+4. **Generate questions** following the schemas above
+5. **Write to import.json** — the plugin detects the file, validates, and merges into questions.json automatically
+
+**Do not read questions.json.** It can be very large. The plugin handles deduplication — just generate fresh questions for the requested notes.
 
 ### Generation Guidelines
 
@@ -262,8 +215,7 @@ Example: \`q_a7b3x9\`, \`q_m2k8p1\`
 ## What NOT To Do
 
 - **Do not modify** config.json, pending.json, or history.json
-- **Do not delete** existing questions from questions.json
-- **Do not generate duplicate questions** for notes that already have questions (check existing sourceNote values)
+- **Do not read or write questions.json** — the plugin owns this file
 - **Do not hallucinate** — only generate questions based on actual note content
 - **Do not include answers in questions** — avoid giving away the answer in how the question is phrased
 
@@ -275,10 +227,10 @@ User prompt: "Generate questions for my pending notes"
 
 1. Read \`.quiz/config.json\` → understand preferences
 2. Read \`.quiz/pending.json\` → get list of notes
-3. Read \`.quiz/questions.json\` → check existing questions
-4. Read each note file in pending.json
-5. Generate questions per the config
-6. Append new questions to \`.quiz/questions.json\`
+3. Read each note file in pending.json
+4. Generate questions per the config
+5. Write all new questions to \`.quiz/import.json\`
+6. Plugin auto-detects the file, validates, and merges into questions.json
 7. Report what was generated
 
 ---

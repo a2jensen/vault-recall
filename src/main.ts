@@ -3,6 +3,8 @@
  */
 
 import { FileSystemAdapter, Plugin, Notice, TFile, TFolder, Menu } from 'obsidian';
+import { watch, type FSWatcher } from 'fs';
+import { join } from 'path';
 import { FileService } from './services/file-service';
 import { ValidationService } from './services/validation-service';
 import { StreakService } from './services/streak-service';
@@ -22,6 +24,8 @@ export default class VaultRecallPlugin extends Plugin {
   importService: ImportService;
   quizService: QuizService;
   config: Config;
+  private importWatcher: FSWatcher | null = null;
+  private importDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onload() {
     console.debug('Loading Vault Recall plugin');
@@ -63,6 +67,9 @@ export default class VaultRecallPlugin extends Plugin {
     });
 
     // TODO: Phase 4 - Register code block processor
+
+    // Start watching import.json for changes from Claude
+    this.startImportWatcher();
   }
 
   /**
@@ -443,7 +450,52 @@ export default class VaultRecallPlugin extends Plugin {
     }
   }
 
+  /**
+   * Watches .quiz/ directory for import.json writes from Claude using fs.watch.
+   * Event-driven — zero idle overhead. Gated behind FileSystemAdapter so it
+   * only runs on desktop. Debounced to handle fs.watch double-firing on write.
+   */
+  private startImportWatcher(): void {
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) return;
+
+    const quizFolderPath = join(adapter.getBasePath(), '.quiz');
+
+    try {
+      this.importWatcher = watch(quizFolderPath, (_, filename) => {
+        if (filename !== 'import.json') return;
+
+        if (this.importDebounceTimer) clearTimeout(this.importDebounceTimer);
+        this.importDebounceTimer = setTimeout(() => {
+          void this.handleImportFileChange();
+        }, 300);
+      });
+    } catch (error) {
+      console.error('Vault Recall: Failed to start import watcher', error);
+    }
+  }
+
+  private async handleImportFileChange(): Promise<void> {
+    const exists = await this.app.vault.adapter.exists('.quiz/import.json');
+    if (!exists) return;
+
+    const result = await this.importService.importQuestions();
+
+    if (result.success) {
+      new Notice(`Added ${result.imported} question${result.imported !== 1 ? 's' : ''}`);
+      this.app.workspace.getLeavesOfType(SIDEBAR_VIEW_TYPE).forEach((leaf) => {
+        if (leaf.view instanceof SidebarView) {
+          void leaf.view.refresh();
+        }
+      });
+    } else {
+      new Notice(`Import failed:\n${result.errors.slice(0, 3).join('\n')}`, 5000);
+    }
+  }
+
   onunload() {
+    this.importWatcher?.close();
+    if (this.importDebounceTimer) clearTimeout(this.importDebounceTimer);
     console.debug('Unloading Vault Recall plugin');
   }
 }

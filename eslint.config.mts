@@ -22,6 +22,13 @@ export default tseslint.config(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		// main.ts uses fs/path for desktop-only fs.watch — gated behind FileSystemAdapter check
+		files: ['src/main.ts'],
+		rules: {
+			'import/no-nodejs-modules': 'off',
+		},
+	},
 	globalIgnores([
 		"node_modules",
 		"dist",

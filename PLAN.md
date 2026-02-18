@@ -541,43 +541,64 @@ count: 5
 
 ## Implementation Order
 
-### Week 1: Foundation
-- [ ] Set up project structure (create folders, stub files)
-- [ ] Implement types.ts and constants.ts
-- [ ] Implement FileService (all read/write operations)
-- [ ] Implement ValidationService (question + config validation)
-- [ ] Plugin initialization (create .quiz folder, copy CLAUDE.md, default files)
+### Phases 1-3: Foundation, Core Services, UI — DONE
+- [x] Project structure, types, constants, helpers
+- [x] FileService, ValidationService
+- [x] StreakService, ImportService, QuizService
+- [x] SidebarView, QuizModal, QuestionRenderer, StatsDisplay
+- [x] Settings tab, context menus, commands
 
-### Week 2: Core Services
-- [ ] Implement StreakService
-- [ ] Implement ImportService
-- [ ] Implement QuizService
-- [ ] Add commands for adding notes/folders to queue
+### Phase 3.5: Prompt Generation — DONE
+- [x] Single-note and queue prompt builders
+- [x] Shell-safe vault path with space escaping
+- [x] Directory-check preamble in all prompts
+- [x] "Copy prompt" button in sidebar pending toolbar
+- [x] "Copy generation prompt" command and context menu item
+- [x] FileService migrated to vault.adapter
 
-### Week 3: UI
-- [ ] Implement SidebarView
-- [ ] Implement QuizModal
-- [ ] Implement QuestionRenderer for all types
-- [ ] Wire up "Take a Quiz" flow
+### Phase 3.6: Auto-Import Architecture — DONE
+- [x] Architectural change: Claude writes to import.json only (never questions.json directly)
+- [x] fs.watch watcher on .quiz/ directory in main.ts (event-driven, not polling)
+- [x] 300ms debounce on watcher to handle double-fire on write
+- [x] Watcher gated behind FileSystemAdapter check (desktop-only, safe on mobile)
+- [x] handleImportFileChange() — checks file exists, runs importService, shows Notice, refreshes sidebar
+- [x] importWatcher closed and debounce timer cleared in onunload()
+- [x] ESLint override in eslint.config.mts to allow fs/path imports only in src/main.ts
+- [x] claude-template.ts updated: import.json is sole write target, questions.json is read-only for Claude
+- [x] .quiz/CLAUDE.md updated to match new workflow (fs.watch auto-processes import.json)
 
-### Week 4: Polish
-- [ ] Implement Settings tab
-- [ ] Implement embeddable quiz code blocks
-- [ ] Add context menu items
-- [ ] Testing and bug fixes
-- [ ] Copy CLAUDE.md to .quiz on first run
+### Phase 4: Sidebar Question Browser — TODO
+- [ ] Add a new section to the sidebar that lists all existing questions
+- [ ] Group questions by source note
+- [ ] Show question text preview (truncated)
+- [ ] Add delete button per question
+- [ ] Add "Delete all" button per source note group
+- [ ] Wire delete actions to FileService (filter from questions.json and rewrite)
+- [ ] Refresh question list after deletions
+
+### Phase 5: Prompt Customization — TODO
+- [ ] Make the generation prompt template editable from plugin settings
+- [ ] Add per-prompt question type selection (multiple choice, fill-in-the-blank, true/false)
+- [ ] Expose question type toggles in settings UI
+- [ ] Reflect selected types in copied prompts
+- [ ] Allow overriding difficulty and question count at copy time
+
+### Phase 6: Embeddable Quizzes
+- [ ] Code block processor for `vault-recall` blocks
+- [ ] Inline quiz widget rendering
+- [ ] YAML config parsing (source, count)
+
+### Phase 7: Polish
+- [ ] Mobile compatibility testing
+- [ ] Question refresh/regeneration UI
 
 ---
 
 ## Open Questions
 
-1. **Quiz source selection UI** - Modal with file/folder picker? Dropdown? Suggest recent notes?
+1. **Embeddable quiz state** - Should inline quizzes save progress? Or reset each time?
 
-2. **Embeddable quiz state** - Should inline quizzes save progress? Or reset each time?
-
-3. **Question refresh** - Should there be a way to mark questions as "stale" and regenerate?
-
-4. **Notifications** - Use Obsidian notices for success/errors? Or inline in sidebar?
+2. **Question refresh** - Should there be a way to mark questions as "stale" and regenerate?
 
 ---
 

@@ -28,15 +28,51 @@ Phases 1-3 are complete. The plugin builds and lints cleanly.
 - `src/components/stats-display.ts` - Streak/best streak display widget
 - `styles.css` - Full CSS for all UI components
 
+### Phase 3.5: Prompt Generation
+- `buildGenerationPrompt()` - Single-note prompt with preferences
+- `buildQueueGenerationPrompt()` - Multi-note prompt for all queued notes
+- `copyGenerationPrompt()` / `copyQueueGenerationPrompt()` - Clipboard helpers
+- `getShellSafeVaultPath()` - Shell-escaped absolute vault path (wraps spaces in single quotes)
+- `buildDirectoryPreamble()` - Directory-check preamble included in all prompts (offers to cd into vault)
+- Command: `copy-generation-prompt` - Copy prompt for active note
+- Context menu: "Copy quiz prompt" on .md files
+- Sidebar: "Copy prompt" button in pending toolbar (copies prompt for all queued notes)
+- `FileService` migrated to `vault.adapter` for reliable dotfolder (.quiz/) access
+
+### Phase 3.6: Auto-Import Architecture
+- **Architectural change**: Claude writes only to `import.json`; plugin auto-detects and merges into `questions.json`
+- `startImportWatcher()` - Uses `fs.watch` (Node.js, event-driven) on `.quiz/` directory
+- 300ms debounce prevents double-processing on rapid write events
+- Watcher gated behind `FileSystemAdapter` check — safe no-op on mobile
+- `handleImportFileChange()` - Validates existence, calls `importService.importQuestions()`, shows Notice, refreshes sidebar
+- `onunload()` - Closes `FSWatcher` and clears debounce timer on plugin unload
+- ESLint override in `eslint.config.mts` — disables `import/no-nodejs-modules` for `src/main.ts` only
+- `src/templates/claude-template.ts` — updated: `import.json` is sole write target, `questions.json` is read-only for Claude
+- `.quiz/CLAUDE.md` — updated in-vault file to match new workflow
+
 ### Registered Commands
 - `add-note-to-queue` - Add current note to pending queue
+- `copy-generation-prompt` - Copy generation prompt for active note
 - `import-questions` - Import from .quiz/import.json
 - `take-quiz` - Open source selection then quiz modal
 - `open-sidebar` - Open/reveal sidebar view
 
 ### Context Menus
 - File menu: "Add to quiz queue" (on .md files)
+- File menu: "Copy quiz prompt" (on .md files)
 - Folder menu: "Add folder to quiz queue"
+
+## Up Next
+
+### Sidebar: Question Browser
+- Display all existing questions in the sidebar (grouped by source note)
+- Ability to delete individual questions
+- Ability to bulk-delete questions by source note
+
+### Prompt Customization
+- Make the generation prompt editable from the UI
+- Let the user choose which question types to include (multiple choice, fill-in-the-blank, true/false)
+- Expose these settings in the prompt that gets copied
 
 ## Not Started
 

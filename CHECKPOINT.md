@@ -69,10 +69,12 @@ Phases 1-3 are complete. The plugin builds and lints cleanly.
 - Ability to delete individual questions
 - Ability to bulk-delete questions by source note
 
-### Prompt Customization
-- Make the generation prompt editable from the UI
-- Let the user choose which question types to include (multiple choice, fill-in-the-blank, true/false)
-- Expose these settings in the prompt that gets copied
+### Phase 5: Inline Config UI
+- Collapsible "Generation settings" section in the sidebar (replaces stub settings tab)
+- Slider for questions per note, checkboxes for question types, segmented button for difficulty
+- Toggle for include related concepts, textarea for custom prompt
+- Each control writes to config.json immediately on change
+- "Copy prompt" button reflects current config live
 
 ## Not Started
 

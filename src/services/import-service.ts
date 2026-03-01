@@ -5,6 +5,7 @@
 import type { FileService } from './file-service';
 import type { ValidationService } from './validation-service';
 import type { Question } from '../types';
+import { generateId } from '../utils/helpers';
 
 export interface ImportResult {
   success: boolean;
@@ -34,6 +35,13 @@ export class ImportService {
         imported: 0,
         errors: ['No import.json file found in .quiz folder'],
       };
+    }
+
+    // Assign IDs to any questions that don't have one
+    for (const q of importData.questions) {
+      if (!q.id) {
+        (q as unknown as Record<string, unknown>).id = `q_${generateId()}`;
+      }
     }
 
     // Validate the import file structure

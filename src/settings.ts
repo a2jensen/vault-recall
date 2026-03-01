@@ -17,19 +17,15 @@ export class VaultRecallSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    // TODO: Phase 2 - Implement settings UI
-    // - Questions per note (number slider, 1-20)
-    // - Question types (multi-select checkboxes)
-    // - Difficulty (dropdown)
-    // - Include related concepts (toggle)
-    // - Custom prompt (text area)
-
     new Setting(containerEl)
       .setName('Quiz generation')
       .setHeading();
 
     new Setting(containerEl)
-      .setName('Coming soon')
-      .setDesc('Full configuration will be available in a future update.');
+      .setName('Generation settings')
+      .setDesc(
+        'Configure questions per note, question types, difficulty, and custom prompt ' +
+        'directly in the Vault Recall sidebar panel under "Generation settings".'
+      );
   }
 }

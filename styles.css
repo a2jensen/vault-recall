@@ -212,6 +212,187 @@
 }
 
 /* ============================================
+   Generation Settings (Inline Config)
+   ============================================ */
+.vr-config-section {
+  border: 1px solid var(--vr-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vr-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--vr-bg-secondary);
+}
+
+.vr-config-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vr-config-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vr-config-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.vr-config-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vr-config-body--hidden {
+  display: none;
+}
+
+.vr-config-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vr-config-row--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vr-config-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Slider */
+.vr-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vr-slider {
+  flex: 1;
+  accent-color: var(--vr-primary);
+  cursor: pointer;
+}
+
+.vr-slider-value {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: right;
+}
+
+/* Checkboxes */
+.vr-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vr-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vr-checkbox {
+  accent-color: var(--vr-primary);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Segmented button */
+.vr-segmented {
+  display: flex;
+  border: 1px solid var(--vr-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vr-seg-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--vr-border);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.vr-seg-btn:last-child {
+  border-right: none;
+}
+
+.vr-seg-btn:hover:not(.vr-seg-btn-active) {
+  background: var(--background-modifier-hover);
+}
+
+.vr-seg-btn-active {
+  background: var(--vr-primary);
+  color: white;
+}
+
+/* Toggle switch */
+.vr-toggle {
+  width: 36px;
+  height: 20px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 2px solid var(--background-modifier-border-focus);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.vr-toggle:checked {
+  background: var(--vr-primary);
+  border-color: var(--vr-primary);
+}
+
+/* Custom prompt textarea */
+.vr-config-textarea {
+  width: 100%;
+  resize: vertical;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid var(--vr-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.vr-config-textarea:focus {
+  outline: none;
+  border-color: var(--vr-primary);
+}
+
+/* ============================================
    Quiz Modal
    ============================================ */
 .vr-quiz-modal {
@@ -560,4 +741,65 @@
   text-align: center;
   padding-top: 16px;
   border-top: 1px solid var(--vr-border);
+}
+
+.vr-source-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 0 4px 0;
+}
+
+.vr-source-folder-header::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 1px;
+  background: var(--vr-border);
+  flex-shrink: 0;
+}
+
+.vr-source-root-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.vr-source-folder-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 14px;
+  margin-bottom: 4px;
+}
+
+.vr-source-note-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vr-source-note-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.vr-source-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vr-text-muted);
+  background: var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 1px 7px;
+  flex-shrink: 0;
 }

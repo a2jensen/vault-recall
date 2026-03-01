@@ -576,12 +576,55 @@ count: 5
 - [ ] Wire delete actions to FileService (filter from questions.json and rewrite)
 - [ ] Refresh question list after deletions
 
-### Phase 5: Prompt Customization — TODO
-- [ ] Make the generation prompt template editable from plugin settings
-- [ ] Add per-prompt question type selection (multiple choice, fill-in-the-blank, true/false)
-- [ ] Expose question type toggles in settings UI
-- [ ] Reflect selected types in copied prompts
-- [ ] Allow overriding difficulty and question count at copy time
+### Phase 5: Inline Config UI — TODO
+
+Replace the stub settings tab with live config controls directly in the sidebar.
+All changes write to `config.json` immediately via `fileService.writeConfig()`.
+
+**Sidebar section: "Generation settings" (collapsible)**
+
+```
+┌─────────────────────────────┐
+│  Generation settings    [▾] │
+├─────────────────────────────┤
+│  Questions per note         │
+│  [────●──────] 5            │
+│                             │
+│  Question types             │
+│  [✓] Multiple choice        │
+│  [✓] Fill in the blank      │
+│  [✓] True / False           │
+│                             │
+│  Difficulty                 │
+│  [ Easy | Medium | Hard ]   │
+│                             │
+│  Include related concepts   │
+│  [toggle: on]               │
+│                             │
+│  Custom prompt              │
+│  ┌───────────────────────┐  │
+│  │ (optional override)   │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+**Controls:**
+- `questionsPerNote` — range slider (1–20), live label showing current value
+- `questionTypes` — three checkboxes (at least one must remain checked)
+- `difficulty` — segmented button: Easy / Medium / Hard
+- `includeRelatedConcepts` — toggle switch
+- `customPrompt` — textarea (placeholder: "Leave blank to use default prompt")
+
+**Behaviour:**
+- Section collapsed by default; state preserved in `localStorage` (not config.json)
+- Each control saves immediately on change (`fileService.writeConfig()`)
+- "Copy prompt" button in pending toolbar reflects current config live
+- Settings tab stub (`settings.ts`) updated to show "Configure in sidebar" note
+
+**Implementation notes:**
+- Load initial values from `this.plugin.config` (already in memory)
+- Update `this.plugin.config.preferences` on each change then write
+- Validate: if all question types unchecked, re-check the one just unchecked
 
 ### Phase 6: Embeddable Quizzes
 - [ ] Code block processor for `vault-recall` blocks

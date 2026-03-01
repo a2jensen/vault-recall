@@ -202,20 +202,23 @@ export default class VaultRecallPlugin extends Plugin {
       return;
     }
 
-    const sourceNotes = [...new Set(questions.map((q) => q.sourceNote))];
+    const noteCounts = new Map<string, number>();
+    for (const q of questions) {
+      noteCounts.set(q.sourceNote, (noteCounts.get(q.sourceNote) ?? 0) + 1);
+    }
+    const sourceNotes = [...noteCounts.keys()].sort((a, b) =>
+      a.split('/').pop()!.localeCompare(b.split('/').pop()!)
+    );
 
-    new QuizSourceModal(this.app, sourceNotes, (source, path) => {
+    new QuizSourceModal(this.app, sourceNotes, noteCounts, (source, path) => {
       void (async () => {
-        let quizQuestions = questions;
-
-        if (source === 'folder' && path) {
-          quizQuestions = await this.quizService.getQuestionsByFolder(path);
-        } else if (source === 'note' && path) {
-          quizQuestions = await this.quizService.getQuestionsBySource(path);
-        }
+        const quizQuestions =
+          source === 'note' && path
+            ? await this.quizService.getQuestionsBySource(path)
+            : questions;
 
         if (quizQuestions.length === 0) {
-          new Notice('No questions found for the selected source');
+          new Notice('No questions found for the selected note');
           return;
         }
 

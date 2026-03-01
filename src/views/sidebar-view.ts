@@ -4,6 +4,7 @@
 
 import { ItemView, WorkspaceLeaf, Notice, TFile } from 'obsidian';
 import type VaultRecallPlugin from '../main';
+import type { Difficulty, QuestionType } from '../types';
 import { StatsDisplay } from '../components/stats-display';
 import { QuizModal, QuizSourceModal } from './quiz-modal';
 import { SIDEBAR_VIEW_TYPE } from '../constants';
@@ -14,6 +15,7 @@ export class SidebarView extends ItemView {
   private plugin: VaultRecallPlugin;
   private statsDisplay: StatsDisplay | null = null;
   private pendingListEl: HTMLElement | null = null;
+  private settingsCollapsed = true;
 
   constructor(leaf: WorkspaceLeaf, plugin: VaultRecallPlugin) {
     super(leaf);
@@ -68,6 +70,9 @@ export class SidebarView extends ItemView {
 
     this.pendingListEl = pendingSection.createDiv({ cls: 'vr-pending-list' });
     await this.refreshPendingList();
+
+    // Generation settings section
+    this.renderConfigSection(container);
 
     // Actions section
     const actionsSection = container.createDiv({ cls: 'vr-sidebar-section vr-sidebar-actions' });
@@ -162,6 +167,135 @@ export class SidebarView extends ItemView {
     }
   }
 
+  private renderConfigSection(container: HTMLElement): void {
+    const prefs = this.plugin.config.preferences;
+
+    const section = container.createDiv({ cls: 'vr-sidebar-section vr-config-section' });
+
+    // Collapsible header
+    const header = section.createDiv({ cls: 'vr-config-header' });
+    header.createEl('span', { text: 'Generation settings', cls: 'vr-config-title' });
+    const arrow = header.createEl('span', {
+      cls: 'vr-config-arrow',
+      text: this.settingsCollapsed ? '▸' : '▾',
+    });
+
+    const body = section.createDiv({ cls: 'vr-config-body' });
+    if (this.settingsCollapsed) body.addClass('vr-config-body--hidden');
+
+    header.addEventListener('click', () => {
+      this.settingsCollapsed = !this.settingsCollapsed;
+      arrow.textContent = this.settingsCollapsed ? '▸' : '▾';
+      body.toggleClass('vr-config-body--hidden', this.settingsCollapsed);
+    });
+
+    // Questions per note — range slider
+    const qpnRow = body.createDiv({ cls: 'vr-config-row' });
+    qpnRow.createEl('label', { text: 'Questions per note', cls: 'vr-config-label' });
+    const sliderRow = qpnRow.createDiv({ cls: 'vr-slider-row' });
+    const slider = sliderRow.createEl('input', {
+      cls: 'vr-slider',
+      attr: { type: 'range', min: '1', max: '20' },
+    });
+    slider.value = String(prefs.questionsPerNote);
+    const sliderVal = sliderRow.createEl('span', {
+      cls: 'vr-slider-value',
+      text: String(prefs.questionsPerNote),
+    });
+    slider.addEventListener('input', () => {
+      sliderVal.textContent = slider.value;
+    });
+    slider.addEventListener('change', () => {
+      this.plugin.config.preferences.questionsPerNote = parseInt(slider.value, 10);
+      void this.saveConfig();
+    });
+
+    // Question types — checkboxes
+    const qtRow = body.createDiv({ cls: 'vr-config-row' });
+    qtRow.createEl('label', { text: 'Question types', cls: 'vr-config-label' });
+    const checkboxGroup = qtRow.createDiv({ cls: 'vr-checkboxes' });
+
+    const typeOptions: { label: string; value: QuestionType }[] = [
+      { label: 'Multiple choice', value: 'multiple_choice' },
+      { label: 'Fill in the blank', value: 'fill_blank' },
+      { label: 'True / False', value: 'true_false' },
+    ];
+
+    const checkboxEls: { cb: HTMLInputElement; value: QuestionType }[] = [];
+
+    for (const opt of typeOptions) {
+      const item = checkboxGroup.createDiv({ cls: 'vr-checkbox-item' });
+      const cb = item.createEl('input', { cls: 'vr-checkbox', attr: { type: 'checkbox' } });
+      cb.checked = prefs.questionTypes.includes(opt.value);
+      item.createEl('span', { text: opt.label });
+      checkboxEls.push({ cb, value: opt.value });
+
+      cb.addEventListener('change', () => {
+        const selected = checkboxEls.filter((x) => x.cb.checked).map((x) => x.value);
+        // Prevent unchecking the last option
+        if (selected.length === 0) {
+          cb.checked = true;
+          return;
+        }
+        this.plugin.config.preferences.questionTypes = selected;
+        void this.saveConfig();
+      });
+    }
+
+    // Difficulty — segmented button
+    const diffRow = body.createDiv({ cls: 'vr-config-row' });
+    diffRow.createEl('label', { text: 'Difficulty', cls: 'vr-config-label' });
+    const segmented = diffRow.createDiv({ cls: 'vr-segmented' });
+
+    const difficulties: { label: string; value: Difficulty }[] = [
+      { label: 'Easy', value: 'easy' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'Hard', value: 'hard' },
+    ];
+
+    const segBtns: { btn: HTMLButtonElement; value: Difficulty }[] = [];
+
+    for (const d of difficulties) {
+      const btn = segmented.createEl('button', { cls: 'vr-seg-btn', text: d.label });
+      if (prefs.difficulty === d.value) btn.addClass('vr-seg-btn-active');
+      segBtns.push({ btn, value: d.value });
+
+      btn.addEventListener('click', () => {
+        segBtns.forEach((x) => x.btn.removeClass('vr-seg-btn-active'));
+        btn.addClass('vr-seg-btn-active');
+        this.plugin.config.preferences.difficulty = d.value;
+        void this.saveConfig();
+      });
+    }
+
+    // Include related concepts — toggle
+    const ircRow = body.createDiv({ cls: 'vr-config-row vr-config-row--inline' });
+    ircRow.createEl('span', { text: 'Include related concepts', cls: 'vr-config-label' });
+    const toggle = ircRow.createEl('input', { cls: 'vr-toggle', attr: { type: 'checkbox' } });
+    toggle.checked = prefs.includeRelatedConcepts;
+    toggle.addEventListener('change', () => {
+      this.plugin.config.preferences.includeRelatedConcepts = toggle.checked;
+      void this.saveConfig();
+    });
+
+    // Custom prompt — textarea
+    const cpRow = body.createDiv({ cls: 'vr-config-row' });
+    cpRow.createEl('label', { text: 'Custom prompt', cls: 'vr-config-label' });
+    const textarea = cpRow.createEl('textarea', {
+      cls: 'vr-config-textarea',
+      attr: { placeholder: 'Leave blank to use default prompt', rows: '3' },
+    });
+    textarea.value = prefs.customPrompt;
+    textarea.addEventListener('change', () => {
+      this.plugin.config.preferences.customPrompt = textarea.value.trim();
+      void this.saveConfig();
+    });
+  }
+
+  private async saveConfig(): Promise<void> {
+    await this.plugin.fileService.writeConfig(this.plugin.config);
+  }
+
   private async openNote(path: string): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
@@ -185,7 +319,6 @@ export class SidebarView extends ItemView {
   }
 
   private async openQuiz(): Promise<void> {
-    // Get all available questions
     const questions = await this.plugin.quizService.getAllQuestions();
 
     if (questions.length === 0) {
@@ -193,37 +326,34 @@ export class SidebarView extends ItemView {
       return;
     }
 
-    // Get unique source notes for the source selector
-    const sourceNotes = [...new Set(questions.map((q) => q.sourceNote))];
+    // Build per-note counts and sorted note list
+    const noteCounts = new Map<string, number>();
+    for (const q of questions) {
+      noteCounts.set(q.sourceNote, (noteCounts.get(q.sourceNote) ?? 0) + 1);
+    }
+    const sourceNotes = [...noteCounts.keys()].sort((a, b) =>
+      a.split('/').pop()!.localeCompare(b.split('/').pop()!)
+    );
 
-    // Open source selection modal
-    new QuizSourceModal(this.app, sourceNotes, (source, path) => {
+    new QuizSourceModal(this.app, sourceNotes, noteCounts, (source, path) => {
       void (async () => {
-        let quizQuestions = questions;
-
-        if (source === 'folder' && path) {
-          quizQuestions = await this.plugin.quizService.getQuestionsByFolder(path);
-        } else if (source === 'note' && path) {
-          quizQuestions = await this.plugin.quizService.getQuestionsBySource(path);
-        }
+        const quizQuestions =
+          source === 'note' && path
+            ? await this.plugin.quizService.getQuestionsBySource(path)
+            : questions;
 
         if (quizQuestions.length === 0) {
-          new Notice('No questions found for the selected source');
+          new Notice('No questions found for the selected note');
           return;
         }
 
-        // Open quiz modal
-        const quizModal = new QuizModal(
+        new QuizModal(
           this.app,
           this.plugin.quizService,
           this.plugin.streakService,
           quizQuestions,
-          () => {
-            // Refresh stats after quiz completes
-            void this.refreshStats();
-          }
-        );
-        quizModal.open();
+          () => void this.refreshStats()
+        ).open();
       })();
     }).open();
   }

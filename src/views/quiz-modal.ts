@@ -215,28 +215,20 @@ export class QuizModal extends Modal {
  * Modal for selecting quiz source before starting
  */
 export class QuizSourceModal extends Modal {
-  private onSelect: (source: 'all' | 'folder' | 'note', path?: string) => void;
-  private pendingNotes: string[];
-  private folders: string[];
+  private onSelect: (source: 'all' | 'note', path?: string) => void;
+  private sourceNotes: string[];
+  private noteCounts: Map<string, number>;
 
   constructor(
     app: App,
-    pendingNotes: string[],
-    onSelect: (source: 'all' | 'folder' | 'note', path?: string) => void
+    sourceNotes: string[],
+    noteCounts: Map<string, number>,
+    onSelect: (source: 'all' | 'note', path?: string) => void
   ) {
     super(app);
-    this.pendingNotes = pendingNotes;
+    this.sourceNotes = sourceNotes;
+    this.noteCounts = noteCounts;
     this.onSelect = onSelect;
-
-    // Extract unique folders from pending notes
-    const folderSet = new Set<string>();
-    for (const note of pendingNotes) {
-      const parts = note.split('/');
-      if (parts.length > 1) {
-        folderSet.add(parts.slice(0, -1).join('/'));
-      }
-    }
-    this.folders = Array.from(folderSet).sort();
   }
 
   onOpen(): void {
@@ -244,48 +236,78 @@ export class QuizSourceModal extends Modal {
     contentEl.empty();
     contentEl.addClass('vr-source-modal');
 
-    // Title
-    const title = contentEl.createEl('h2', { cls: 'vr-source-title' });
-    title.textContent = 'Select quiz source';
+    contentEl.createEl('h2', { cls: 'vr-source-title', text: 'Select quiz source' });
 
-    // Options container
     const options = contentEl.createDiv({ cls: 'vr-source-options' });
 
-    // All questions option
-    const allOption = options.createDiv({ cls: 'vr-source-option' });
-    const allBtn = allOption.createEl('button', {
-      cls: 'vr-btn vr-btn-full',
-      text: 'All questions',
-    });
+    // All questions
+    const totalCount = Array.from(this.noteCounts.values()).reduce((a, b) => a + b, 0);
+    const allBtn = options.createEl('button', { cls: 'vr-btn vr-btn-primary vr-btn-full' });
+    allBtn.createSpan({ text: 'All questions' });
+    allBtn.createSpan({ cls: 'vr-source-count', text: `${totalCount}` });
     allBtn.addEventListener('click', () => {
       this.onSelect('all');
       this.close();
     });
 
-    // Folders section (if any)
-    if (this.folders.length > 0) {
-      const folderSection = options.createDiv({ cls: 'vr-source-section' });
-      folderSection.createEl('h3', { text: 'By folder' });
+    // Per-note list, grouped by folder
+    if (this.sourceNotes.length > 0) {
+      const noteSection = options.createDiv({ cls: 'vr-source-section' });
+      noteSection.createEl('h3', { text: 'By note' });
 
-      for (const folder of this.folders) {
-        const folderBtn = folderSection.createEl('button', {
-          cls: 'vr-btn vr-btn-outline vr-btn-full',
-          text: folder,
+      // Group notes by parent folder
+      const groups = new Map<string, string[]>();
+      for (const notePath of this.sourceNotes) {
+        const parts = notePath.split('/');
+        const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+        if (!groups.has(folder)) groups.set(folder, []);
+        groups.get(folder)!.push(notePath);
+      }
+
+      // Root notes first, then folders alphabetically by last segment
+      const sortedFolders = [...groups.keys()].sort((a, b) => {
+        if (a === '') return -1;
+        if (b === '') return 1;
+        return (a.split('/').pop() ?? a).localeCompare(b.split('/').pop() ?? b);
+      });
+
+      for (const folder of sortedFolders) {
+        const notes = groups.get(folder)!;
+
+        if (folder !== '') {
+          const folderHeader = noteSection.createDiv({ cls: 'vr-source-folder-header' });
+          folderHeader.createSpan({ text: folder.split('/').pop() ?? folder });
+        }
+
+        const group = noteSection.createDiv({
+          cls: folder !== '' ? 'vr-source-folder-group' : 'vr-source-root-group',
         });
-        folderBtn.addEventListener('click', () => {
-          this.onSelect('folder', folder);
-          this.close();
-        });
+
+        for (const notePath of notes) {
+          const filename = notePath.split('/').pop()?.replace(/\.md$/, '') ?? notePath;
+          const count = this.noteCounts.get(notePath) ?? 0;
+
+          const noteBtn = group.createEl('button', {
+            cls: 'vr-btn vr-btn-outline vr-btn-full vr-source-note-btn',
+            attr: { title: notePath },
+          });
+          noteBtn.createSpan({ cls: 'vr-source-note-name', text: filename });
+          noteBtn.createSpan({ cls: 'vr-source-count', text: `${count}` });
+
+          noteBtn.addEventListener('click', () => {
+            this.onSelect('note', notePath);
+            this.close();
+          });
+        }
       }
     }
 
-    // Cancel button
+    // Cancel
     const cancelContainer = contentEl.createDiv({ cls: 'vr-source-cancel' });
-    const cancelBtn = cancelContainer.createEl('button', {
+    cancelContainer.createEl('button', {
       cls: 'vr-btn vr-btn-secondary',
       text: 'Cancel',
-    });
-    cancelBtn.addEventListener('click', () => this.close());
+    }).addEventListener('click', () => this.close());
   }
 
   onClose(): void {

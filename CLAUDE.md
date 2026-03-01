@@ -193,18 +193,9 @@ When asked to generate questions:
 - Match the `difficulty` setting
 - If `includeRelatedConcepts` is true, generate some questions that extend beyond the literal note content
 - If `customPrompt` is set, follow those instructions
-- Generate unique `id` values using format `q_` + 6 random alphanumeric characters
 - Always include `explanation` — this is shown after the user answers
 - Set `relatedConcepts` to help with future question clustering
-
-### ID Generation
-
-Use this format for question IDs:
-```
-q_[6 random alphanumeric characters]
-```
-
-Example: `q_a7b3x9`, `q_m2k8p1`
+- You do **not** need to include `id` — the plugin assigns IDs automatically on import
 
 ---
 
